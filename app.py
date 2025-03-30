@@ -1,6 +1,6 @@
+import os
 from flask import Flask, request, jsonify
 import pickle
-import numpy as np
 
 app = Flask(__name__)
 
@@ -8,19 +8,17 @@ app = Flask(__name__)
 with open("model.pkl", "rb") as file:
     model = pickle.load(file)
 
-@app.route('/')
+@app.route("/")
 def home():
-    return "Carbon Emission API is Live!"
+    return "Carbon Emission API is running!"
 
-@app.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
-    try:
-        data = request.get_json()
-        features = np.array(data['features']).reshape(1, -1)
-        prediction = model.predict(features)
-        return jsonify({'prediction': prediction.tolist()})
-    except Exception as e:
-        return jsonify({'error': str(e)})
+    data = request.json
+    features = [data["features"]]
+    prediction = model.predict(features).tolist()
+    return jsonify({"prediction": prediction})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)  # Ensure the correct port is used
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))  # Use Render's PORT or fallback
+    app.run(host="0.0.0.0", port=port)
