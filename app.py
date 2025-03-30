@@ -1,33 +1,28 @@
+import pickle
 from flask import Flask, request, jsonify
-import joblib
 import numpy as np
 
 app = Flask(__name__)
 
-# ✅ Load trained model
-model = joblib.load("model.pkl")
+# ❌ Incorrect way (might be causing the issue)
+model = np.load("model.pkl")  # This is incorrect because np.load() loads an array, not a model.
+
+# ✅ Correct way to load the model
+with open("model.pkl", "rb") as file:
+    model = pickle.load(file)  # This ensures it's a trained model, not an array.
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
 
-    # ✅ Ensure correct feature input
-    if "features" not in data:
-        return jsonify({"error": "Missing 'features' key in request."}), 400
+    # Convert features into a NumPy array
+    features = np.array(data["features"]).reshape(1, -1)
 
-    features = data["features"]
+    # ❌ If model is a NumPy array, `.predict()` will not work
+    prediction = model.predict(features)  # Make sure model is a trained ML model
 
-    if len(features) != 4:  # 🚀 Expecting 4 features now
-        return jsonify({"error": f"Model expects 4 features, but got {len(features)}."}), 400
-
-    # ✅ Convert to NumPy array and reshape
-    features = np.array(features).reshape(1, -1)
-
-    # ✅ Predict
-    prediction = model.predict(features)[0]
-
-    return jsonify({"prediction": prediction})
+    return jsonify({"prediction": prediction.tolist()})
 
 
 if __name__ == '__main__':
